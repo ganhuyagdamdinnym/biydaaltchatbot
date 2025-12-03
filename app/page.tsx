@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+
 export default function Chat() {
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
     []
@@ -11,19 +12,26 @@ export default function Chat() {
     if (!input.trim()) return;
 
     const userMsg = { sender: "You", text: input };
-
     setMessages((prev) => [...prev, userMsg]);
 
-    const res = await fetch("http://127.0.0.1:8000/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input }),
-    });
+    try {
+      const res = await fetch("https://chatbotsystem-m9rb.onrender.com/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input }),
+      });
 
-    const data = await res.json();
+      if (!res.ok) throw new Error("Network response was not ok");
 
-    const botMsg = { sender: "Bot", text: data.reply };
-    setMessages((prev) => [...prev, botMsg]);
+      const data = await res.json();
+      const botMsg = { sender: "Bot", text: data.reply };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "Bot", text: "Server not reachable." },
+      ]);
+    }
 
     setInput("");
   };
@@ -34,10 +42,15 @@ export default function Chat() {
   }, [messages]);
 
   return (
-    <div className="w-screen h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex">
-      <div className="w-full h-full flex flex-col px-8 py-6">
+    <div className="w-screen h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="w-full max-w-2xl h-[80vh] flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Chat header */}
+        <div className="bg-blue-600 text-white py-4 px-6 font-semibold text-lg">
+          Chatbot
+        </div>
+
         {/* Chat container */}
-        <div className="flex-1 bg-white rounded-xl shadow-md p-4 overflow-y-auto space-y-3">
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -57,14 +70,14 @@ export default function Chat() {
               </div>
             </div>
           ))}
-
           <div ref={bottomRef}></div>
         </div>
 
         {/* Input box */}
-        <div className="mt-4 flex">
+        <div className="flex p-4 bg-white border-t border-gray-200">
           <input
-            className="flex-1 border shadow-sm rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            type="text"
+            className="flex-1 border rounded-xl p-3 text-black focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             placeholder="Type a message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -72,7 +85,7 @@ export default function Chat() {
           />
           <button
             onClick={sendMessage}
-            className="ml-3 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 transition-all"
+            className="ml-3 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 transition-colors"
           >
             Send
           </button>
